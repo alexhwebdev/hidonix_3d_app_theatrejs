@@ -7,7 +7,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 import * as THREE from 'three'
 
-export default function Stadium({ position = [0, 0, 0] }) {
+export default function Stadium({ 
+  position = [0, 0, 0],
+  scale = [0.1, 0.1, 0.1]
+}) {
   // Load Draco-compressed GLB using GLTFLoader with DRACOLoader
   const gltf = useLoader(GLTFLoader, '/models/vallourec_stadium_draco.glb', (loader) => {
     const dracoLoader = new DRACOLoader()
@@ -38,44 +41,45 @@ export default function Stadium({ position = [0, 0, 0] }) {
       <OrbitControls />
       {/* <ambientLight intensity={0.1} /> */}
 
-{/* <directionalLight
-  position={[10, 100, 0]}
-  intensity={1.2}
-  castShadow
-  shadow-mapSize-width={2048}
-  shadow-mapSize-height={2048}
-  shadow-bias={-0.0001}
-/> */}
-{/* <hemisphereLight
-  skyColor="#000000"
-  groundColor="#000000"
-  intensity={0.9}
-/> */}
-      <group position={position} scale={[1.0, 1.0, 1.0]}>
+      {/* <directionalLight
+        position={[10, 100, 0]}
+        intensity={1.2}
+        castShadow
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-bias={-0.0001}
+      />
+      <hemisphereLight
+        skyColor="#000000"
+        groundColor="#000000"
+        intensity={0.9}
+      /> */}
+      <group position={position} scale={scale}>
         {meshes.map((mesh, i) => (
-          <mesh
-            key={i}
-            geometry={mesh.geometry}
-            position={mesh.position}
-            rotation={mesh.rotation}
-            scale={mesh.scale}
-          >
+          <group key={i}>
+            <mesh
+              geometry={mesh.geometry}
+              position={mesh.position}
+              rotation={mesh.rotation}
+              scale={mesh.scale}
+            >
+              <meshStandardMaterial
+                color="white"
+                metalness={0.5}
+                roughness={0.9}
+              />
+            </mesh>
 
-            <meshStandardMaterial
-              // color="#aaaaaa"
-              color="white"
-              metalness={0.9}
-              roughness={0.6}
-              wireframe
-            />
-            
-            {/* <meshBasicMaterial
-              wireframe
-              color="red"
-              opacity={0.9}
-              transparent
-            /> */}
-          </mesh>
+            {/* Outline */}
+            <lineSegments
+              geometry={new THREE.EdgesGeometry(mesh.geometry)}
+              position={mesh.position}
+              rotation={mesh.rotation}
+              scale={mesh.scale}
+            >
+              <lineBasicMaterial color="#4b6a7d" linewidth={1} />
+            </lineSegments>
+          </group>
         ))}
       </group>
     </>

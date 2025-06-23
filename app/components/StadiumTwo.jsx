@@ -7,7 +7,10 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 import * as THREE from 'three'
 
-export default function Stadium({ position = [0, 0, 0] }) {
+export default function StadiumTwo({ 
+  position = [0, 0, 0],
+  scale = [0.1, 0.1, 0.1]
+}) {
   // Load Draco-compressed GLB using GLTFLoader with DRACOLoader
   const gltf = useLoader(GLTFLoader, '/models/vallourec_stadium_draco.glb', (loader) => {
     const dracoLoader = new DRACOLoader()
@@ -37,7 +40,7 @@ export default function Stadium({ position = [0, 0, 0] }) {
       <OrbitControls />
       <ambientLight intensity={1} />
 
-      <group position={position} scale={[0.1, 0.1, 0.1]}>
+      <group position={position} scale={scale}>
          <mesh
            position={[0, -5, 0]}
            rotation={[-Math.PI / 2, 0, 0]}

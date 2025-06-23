@@ -9,6 +9,7 @@ const ParticlesHoverPlane = ({
   height = 1,
   segments = 100,
   liftRadius = 1,
+  liftStrength = 0.1,
   position = [0, 0, 0],
   rotation = [0, 0, 0],
 }) => {
@@ -32,10 +33,10 @@ const ParticlesHoverPlane = ({
     return arr;
   }, [count, segments, width, height]);
 
-  const liftStrengths = useMemo(() => {
+  const liftMultipliers = useMemo(() => {
     const arr = new Float32Array(count);
     for (let i = 0; i < count; i++) {
-      arr[i] = Math.random();
+      arr[i] = Math.random(); // unique lift factor
     }
     return arr;
   }, [count]);
@@ -66,6 +67,7 @@ const ParticlesHoverPlane = ({
   const uniforms = useMemo(() => ({
     uMousePos: { value: new THREE.Vector2(10000, 10000) },
     uLiftRadius: { value: liftRadius },
+    uLiftStrength: { value: liftStrength },
     uEdgeFadeRadius: { value: Math.min(width, height) * 0.4 },
   }), [liftRadius, width, height]);
 
@@ -73,11 +75,14 @@ const ParticlesHoverPlane = ({
     uniforms.uMousePos.value.copy(mousePos.current);
   });
 
-  const vertexShader = `
+  const vertexShader = /* glsl */`
+    attribute float liftMultiplier;
+
     uniform vec2 uMousePos;
     uniform float uLiftRadius;
     uniform float uEdgeFadeRadius;
-    attribute float liftStrength;
+    uniform float uLiftStrength;
+
     varying float vLift;
     varying float vEdgeFade;
 
@@ -85,7 +90,7 @@ const ParticlesHoverPlane = ({
       float dist = distance(position.xy, uMousePos);
       float lift = 0.0;
       if (dist < uLiftRadius) {
-        lift = (1.0 - dist / uLiftRadius) * liftStrength;
+        lift = (1.0 - dist / uLiftRadius) * uLiftStrength * liftMultiplier;
       }
       vLift = lift;
 
@@ -101,7 +106,7 @@ const ParticlesHoverPlane = ({
     }
   `;
 
-  const fragmentShader = `
+  const fragmentShader = /* glsl */`
     varying float vLift;
     varying float vEdgeFade;
 
@@ -114,7 +119,7 @@ const ParticlesHoverPlane = ({
 
       if (opacity < 0.01) discard;
 
-      vec3 color = mix(vec3(1.0), vec3(1.0, 0.0, 0.0), clamp(vLift, 0.0, 1.0)); // white to red
+      vec3 color = mix(vec3(1.0), vec3(1.0, 0.0, 0.0), clamp(vLift, 0.0, 1.0));
 
       gl_FragColor = vec4(color, opacity);
     }
@@ -130,9 +135,9 @@ const ParticlesHoverPlane = ({
           itemSize={3}
         />
         <bufferAttribute
-          attach="attributes-liftStrength"
+          attach="attributes-liftMultiplier"
           count={count}
-          array={liftStrengths}
+          array={liftMultipliers}
           itemSize={1}
         />
       </bufferGeometry>
@@ -140,7 +145,7 @@ const ParticlesHoverPlane = ({
         vertexShader={vertexShader}
         fragmentShader={fragmentShader}
         uniforms={uniforms}
-        transparent={true}
+        transparent
         depthWrite={false}
         blending={THREE.NormalBlending}
       />

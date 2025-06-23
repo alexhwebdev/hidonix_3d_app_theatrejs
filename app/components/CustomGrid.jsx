@@ -14,6 +14,7 @@ const CustomGrid = memo(({
   fadeDistance = 30,
   planeSize = 50,
   sectionColor = [1, 1, 1],
+  // sectionColor=[0, 0, 0],
   dotColor = [1.0, 0.2, 0.2], // default reddish
 }) => {
   const materialRef = useRef();

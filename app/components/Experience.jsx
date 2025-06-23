@@ -52,19 +52,18 @@ export const Experience = () => {
 
       <group 
         theatreKey={"Stadium"}
-        scale={[0.2, 0.2, 0.2]}
+        scale={[1.0, 1.0, 1.0]}
       >
-        {/* <MedievalFantasyBook scale={0.1} envMapIntensity={0.3} /> */}
-        <Stadium scale={1.0} envMapIntensity={0.3} />
+        <Stadium scale={0.2} envMapIntensity={0.3} />
 
         <group 
           position={[-0.5, 0.5, 0.65]}
           rotation={[1.7, 0, 2.6]}
           scale={[0.2, 0.2, 0.2]}
         >
-          <ParticlePathAnimation 
+          {/* <ParticlePathAnimation 
             // position={[-1.39, 1.2, 0]} 
-          />
+          /> */}
         </group>
       </group>
 
@@ -72,11 +71,9 @@ export const Experience = () => {
       <group 
         theatreKey="StadiumTwo" 
         position={[10, 0, 10]}
-        // scale={[0, 0, 0]}
-        scale={[0.2, 0.2, 0.2]}
-        // scale={[1.0, 1.0, 1.0]}
+        scale={[1.0, 1.0, 1.0]}
       >
-        {/* <StadiumTwo scale={0.1} envMapIntensity={0.3} /> */}
+        <StadiumTwo scale={0.2} envMapIntensity={0.3} />
 
         {/* <Float
           speed={1}
