@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef } from "react";
+import * as THREE from "three";
 import { Canvas, useThree, useFrame, invalidate } from "@react-three/fiber";
 import { 
   Grid,
@@ -17,10 +18,13 @@ import ParticlesHoverPlane from "./components/ParticlesHoverPlane/ParticlesHover
 import ParticlesWavePlane from "./components/ParticlesWavePlane/ParticlesWavePlane";
 import gsap from "gsap";
 import './page.scss';
+
 import { useControls } from "leva";
-import * as THREE from "three";
+import { levaStore } from 'leva';
+
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+
 
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/draco/');
@@ -29,6 +33,18 @@ const gltfLoader = new GLTFLoader();
 gltfLoader.setDRACOLoader(dracoLoader);
 
 const sceneOrder = ["Scene1", "Scene2", "Scene3"];
+
+const cameraPositions = {
+  Scene1: { x: -7, y: 5, z: 6.5 },
+  Scene2: { x: -1, y: 14.5, z: -5.05 },
+  Scene3: { x: -4.579, y: 1.697, z: 2.177 },
+};
+
+const cameraTargets = {
+  Scene1: { x: 0, y: -1, z: 0 },
+  Scene2: { x: 0, y: 0, z: -5.043 },
+  Scene3: { x: -2.034, y: 0.464, z: 0.550 },
+};
 
 export default function App() {
   const initialCameraRef = useRef();
@@ -40,11 +56,15 @@ export default function App() {
   const triggerRef = useRef(null);
   const particlesRef = useRef();
 
-  const { cameraPosition, cameraTarget } = useControls("Camera", {
-    cameraPosition: { value: { x: -7, y: 4, z: 6.5 }, step: 0.1 },
-    cameraTarget: { value: { x: 0, y: 0.00057, z: 0 }, step: 0.1 },
-  });
+  // ---------- COMMENT OUT WHEN DONE WITH PLOTTING X, Y, Z COORDINATES
+  // const { cameraPosition, cameraTarget } = useControls("Camera", {
+  //   // Scene1
+  //   cameraPosition: { value: { x: -7, y: 4, z: 6.5 }, step: 0.1 },
+  //   cameraTarget: { value: { x: 0, y: 0, z: 0 }, step: 0.1 },
+  // });
 
+  const initialCameraPosition = { x: -7, y: 5, z: 6.5 };
+  // Inital page load animation
   useEffect(() => {
     let raf;
 
@@ -54,15 +74,21 @@ export default function App() {
         raf = requestAnimationFrame(tryAnimateCamera);
         return;
       }
-
+      // Starting position, before Scene1
       cam.position.set(12, 2, 7);
 
       gsap.to(cam.position, {
-        ...cameraPosition,
+        // ...cameraPosition,
+        ...initialCameraPosition,
         duration: 2,
         ease: "power2.inOut",
         onUpdate: () => invalidate(),
         onComplete: () => {
+          // cam.lookAt(
+          //   initialCameraTarget.x,
+          //   initialCameraTarget.y,
+          //   initialCameraTarget.z
+          // );
           TriggerUiChange();
           particlesRef.current?.resetMouse?.();
         }
@@ -79,15 +105,96 @@ export default function App() {
   }
 
   function CameraAnimator({ particlesRef }) {
+    // // ---------- COMMENT OUT WHEN DONE WITH PLOTTING X, Y, Z COORDINATES
+    // const { camera } = useThree();
+    // useFrame(() => {
+    //   if (!camera || !cameraControlTarget.current || !lookAtControlTarget.current) return;
+    //   camera.position.copy(cameraControlTarget.current.position);
+    //   camera.lookAt(lookAtControlTarget.current.position);
+
+    //   // const camPos = cameraControlTarget.current.position;
+    //   const lookAtPos = lookAtControlTarget.current.position;
+
+    //   // levaStore.setValueAtPath("Camera.cameraPosition", {
+    //   //   x: camPos.x,
+    //   //   y: camPos.y,
+    //   //   z: camPos.z,
+    //   // });
+
+    //   levaStore.setValueAtPath("Camera.cameraTarget", {
+    //     x: lookAtPos.x,
+    //     y: lookAtPos.y,
+    //     z: lookAtPos.z,
+    //   });
+    // });
+    // return null;
+
+    
+    // ---------- UNCOMMENT WHEN DONE WITH PLOTTING X, Y, Z COORDINATES
+    // ---------- Handle scene transitions ----------
     const { camera } = useThree();
+    const activeScene = useRef(null);
+    const lookAtTarget = useRef(new THREE.Vector3()); // store lookAt separately for animation
 
+    // ⛳️ Always make camera look at the animated target
     useFrame(() => {
-      if (!camera || !cameraControlTarget.current || !lookAtControlTarget.current) return;
-
-      camera.position.copy(cameraControlTarget.current.position);
-      camera.lookAt(lookAtControlTarget.current.position);
+      camera.lookAt(lookAtTarget.current);
     });
 
+    useFrame(() => {
+      const target = targetSceneRef.current;
+      if (!target || activeScene.current === target) return;
+      activeScene.current = target;
+
+      const camPos = cameraPositions[target];
+      const camTarget = cameraTargets[target];
+      if (!camPos || !camTarget) return;
+
+      const fromTarget = lookAtTarget.current.clone();
+      const toTarget = new THREE.Vector3(camTarget.x, camTarget.y, camTarget.z);
+
+      // Animate camera position
+      gsap.to(camera.position, {
+        x: camPos.x,
+        y: camPos.y,
+        z: camPos.z,
+        duration: 2,
+        ease: "power2.inOut",
+        onUpdate: () => invalidate(),
+      });
+
+      // Animate camera lookAt target
+      gsap.to(fromTarget, {
+        x: toTarget.x,
+        y: toTarget.y,
+        z: toTarget.z,
+        duration: 2,
+        ease: "power2.inOut",
+        onUpdate: () => {
+          camera.lookAt(fromTarget);
+          invalidate();
+        },
+        onComplete: () => {
+          lookAtTarget.current.copy(toTarget);
+          particlesRef.current?.resetMouse();
+          TriggerUiChange();
+        }
+      });
+
+      // Animate lookAt target
+      gsap.to(lookAtTarget.current, {
+        x: camTarget.x,
+        y: camTarget.y,
+        z: camTarget.z,
+        duration: 2,
+        ease: "power2.inOut",
+        onUpdate: () => invalidate(),
+        onComplete: () => {
+          TriggerUiChange();
+          particlesRef.current?.resetMouse?.();
+        },
+      });
+    });
     return null;
   }
 
@@ -95,6 +202,7 @@ export default function App() {
     window.scrollTo(0, 0);
   }, []);
 
+  // Scroll-based scene switching
   useEffect(() => {
     const handleWheel = (e) => {
       if (scrollLock.current) return;
@@ -135,15 +243,16 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+
   return (
     <>
       {/* Scrollable page: 1 full-height div per scene */}
       <div style={{ height: "600vh", position: "absolute", top: 0, left: 0, width: "100%", zIndex: -5 }} />
 
-      {/* <UI
+      <UI
         targetSceneRef={targetSceneRef} // read-only
         triggerRef={triggerRef}
-      /> */}
+      />
 
       <Canvas
         style={{ position: "absolute", top: 0, left: 0, zIndex: 1 }}
@@ -151,16 +260,18 @@ export default function App() {
         shadows
         gl={{ preserveDrawingBuffer: true }}
       >
+        <axesHelper args={[5]} />
         <OrbitControls />
         {/* <OrbitControls autoRotate autoRotateSpeed={0.05} enableZoom={false} makeDefault minPolarAngle={Math.PI / 2} maxPolarAngle={Math.PI / 2} /> */}
         
         {/* <fog attach="fog" args={['black', 15, 22.5]} /> */}
         {/* <SoftShadows /> */}
 
-        {/* <CameraMovement 
+        <CameraMovement 
           cameraGroupRef={cameraOffsetGroupRef} 
-          intensity={5.0} 
-        /> */}
+          intensity={2.0} 
+          sceneNameRef={targetSceneRef}
+        />
 
         <group ref={cameraOffsetGroupRef}>
           <PerspectiveCamera 
@@ -177,21 +288,21 @@ export default function App() {
 
         <CameraAnimator particlesRef={particlesRef} />
 
-        {/* Draggable Camera Position Handle */}
-        <TransformControls object={cameraControlTarget} mode="translate" />
+
+        {/* Draggable Camera Position & Target */}
+        {/* <TransformControls object={cameraControlTarget} mode="translate" />
         <mesh
           ref={cameraControlTarget}
           position={[cameraPosition.x, cameraPosition.y, cameraPosition.z]}
-          visible={false}
+          visible={true}
         />
-
-        {/* Draggable Camera Target Handle */}
         <TransformControls object={lookAtControlTarget} mode="translate" />
         <mesh
           ref={lookAtControlTarget}
           position={[cameraTarget.x, cameraTarget.y, cameraTarget.z]}
-          visible={false}
-        />
+          visible={true}
+        /> */}
+
 
         <Experience />
 

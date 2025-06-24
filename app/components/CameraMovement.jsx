@@ -4,11 +4,23 @@ import { useRef, useEffect } from 'react'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 
+const cameraParallaxConfig = {
+  // Scene1: { intensity: 1.2, damping: 0.04, limit: 1.5 }, // wide parallax
+  // Scene2: { intensity: 0.5, damping: 0.03, limit: 0.7 }, // subtle hover
+  // Scene3: { intensity: 0.0, damping: 0.0, limit: 0.0 },  // disable
+
+  Scene1: { intensity: 1.5, damping: 0.05, limit: 1.5 },
+  Scene2: { intensity: 0.4, damping: 0.03, limit: 0.4 },
+  // Scene2: { enabled: false },
+  Scene3: { intensity: 0.9, damping: 0.02, limit: 1.0 },
+};
+
 export default function CameraMovement({ 
+  sceneNameRef,
   cameraGroupRef, 
   intensity = 0.4, 
   damping = 0.009,
-  limit = 2.0 // max movement in any direction
+  limit = 1.0 // max movement in any direction
 }) {
   const mouse = useRef([0, 0])
   const targetPosition = useRef(new THREE.Vector3())
@@ -28,23 +40,41 @@ export default function CameraMovement({
     return () => window.removeEventListener('mousemove', handleMouseMove)
   }, [])
 
-  useFrame(() => {
-    if (!cameraGroupRef.current) return
+  useFrame(({ camera }) => {
+    const sceneName = sceneNameRef.current;
+    const config = cameraParallaxConfig[sceneName] || {};
+    // if (config.enabled === false) return;
+    if (!cameraGroupRef.current || config.enabled === false) return;
 
-    const [mx, my] = mouse.current
+    const intensity = config.intensity ?? 0.5;
+    const damping = config.damping ?? 0.01;
+    const limit = config.limit ?? 1.0;
 
-    // Compute target position with intensity
-    let tx = THREE.MathUtils.clamp(mx * intensity, -limit, limit)
-    let ty = THREE.MathUtils.clamp(my * intensity, -limit, limit)
+    const [mx, my] = mouse.current;
 
-    targetPosition.current.set(tx, ty, 0)
+    const offset = new THREE.Vector3(
+      THREE.MathUtils.clamp(mx * intensity, -limit, limit),
+      THREE.MathUtils.clamp(my * intensity, -limit, limit),
+      0
+    );
 
-    // Smooth interpolation
-    currentPosition.current.lerp(targetPosition.current, damping)
+    // Align to camera space
+    camera.updateMatrixWorld();
+    const right = new THREE.Vector3();
+    const up = new THREE.Vector3();
+    camera.getWorldDirection(right);
+    right.crossVectors(camera.up, right).normalize();
+    up.copy(camera.up).normalize();
 
-    // Apply to camera group
-    cameraGroupRef.current.position.copy(currentPosition.current)
-  })
+    const worldOffset = new THREE.Vector3()
+      .copy(right).multiplyScalar(offset.x)
+      .addScaledVector(up, offset.y);
+
+    targetPosition.current.copy(worldOffset);
+    currentPosition.current.lerp(targetPosition.current, damping);
+    cameraGroupRef.current.position.copy(currentPosition.current);
+  });
+
 
   return null
 }
