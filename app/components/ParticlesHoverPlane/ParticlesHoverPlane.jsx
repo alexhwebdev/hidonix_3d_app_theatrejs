@@ -17,15 +17,14 @@ const ParticlesHoverPlane = ({
   const { size, camera } = useThree();
   const count = segments * segments;
 
+  // Uniform grid (no initial jitter)
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const xIndex = i % segments;
       const yIndex = Math.floor(i / segments);
-      const jitterX = (Math.random() - 0.5) * (width / segments);
-      const jitterY = (Math.random() - 0.5) * (height / segments);
-      const x = (xIndex / (segments - 1)) * width - width / 2 + jitterX;
-      const y = (yIndex / (segments - 1)) * height - height / 2 + jitterY;
+      const x = (xIndex / (segments - 1)) * width - width / 2;
+      const y = (yIndex / (segments - 1)) * height - height / 2;
       arr[i * 3] = x;
       arr[i * 3 + 1] = y;
       arr[i * 3 + 2] = 0;
@@ -36,7 +35,7 @@ const ParticlesHoverPlane = ({
   const liftMultipliers = useMemo(() => {
     const arr = new Float32Array(count);
     for (let i = 0; i < count; i++) {
-      arr[i] = Math.random(); // unique lift factor
+      arr[i] = Math.random();
     }
     return arr;
   }, [count]);
@@ -80,25 +79,39 @@ const ParticlesHoverPlane = ({
 
     uniform vec2 uMousePos;
     uniform float uLiftRadius;
-    uniform float uEdgeFadeRadius;
     uniform float uLiftStrength;
+    uniform float uEdgeFadeRadius;
 
     varying float vLift;
     varying float vEdgeFade;
 
+    // Simple hash noise
+    float rand(vec2 co) {
+      return fract(sin(dot(co, vec2(12.9898, 78.233))) * 43758.5453);
+    }
+
     void main() {
       float dist = distance(position.xy, uMousePos);
       float lift = 0.0;
+      vec3 pos = position;
+
       if (dist < uLiftRadius) {
-        lift = (1.0 - dist / uLiftRadius) * uLiftStrength * liftMultiplier;
+        float strength = (1.0 - dist / uLiftRadius);
+        float noise = rand(position.xy);
+        float offsetX = (rand(position.xy + 1.23) - 0.5) * 0.1 * strength;
+        float offsetY = (rand(position.xy + 9.87) - 0.5) * 0.1 * strength;
+
+        pos.x += offsetX;
+        pos.y += offsetY;
+        lift = strength * uLiftStrength * liftMultiplier * noise;
       }
+
       vLift = lift;
 
       float r = length(position.xy);
       float fade = smoothstep(uEdgeFadeRadius, uEdgeFadeRadius * 1.3, r);
       vEdgeFade = 1.0 - fade;
 
-      vec3 pos = position;
       pos.z += lift;
 
       gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
@@ -119,8 +132,12 @@ const ParticlesHoverPlane = ({
 
       if (opacity < 0.01) discard;
 
-      vec3 color = mix(vec3(1.0), vec3(1.0, 0.0, 0.0), clamp(vLift, 0.0, 1.0));
-
+      vec3 color = mix(
+        vec3(1.0), 
+        vec3(1.0, 0.0, 0.0), 
+        clamp(vLift, 0.0, 1.0)
+      );
+      
       gl_FragColor = vec4(color, opacity);
     }
   `;

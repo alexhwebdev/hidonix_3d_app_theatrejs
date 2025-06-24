@@ -6,6 +6,7 @@ import { useLoader } from '@react-three/fiber'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader'
 import * as THREE from 'three'
+import CustomGrid from "./CustomGrid";
 
 export default function StadiumTwo({ 
   position = [0, 0, 0],
@@ -41,13 +42,14 @@ export default function StadiumTwo({
       <ambientLight intensity={1} />
 
       <group position={position} scale={scale}>
-         <mesh
-           position={[0, -5, 0]}
-           rotation={[-Math.PI / 2, 0, 0]}
-         >
-           <planeGeometry args={[50, 50]} />
-           <meshBasicMaterial color="gray" />
-         </mesh>
+        <mesh
+          position={[0, 0, 0]}
+          rotation={[-Math.PI / 2, 0, 0]}
+        >
+          <planeGeometry args={[50, 50]} />
+          <meshBasicMaterial color="gray" />
+        </mesh>
+
         {meshes.map((mesh, i) => (
           <mesh
             key={i}

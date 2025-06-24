@@ -51,26 +51,27 @@ export const Experience = () => {
 
 
       <group 
-        theatreKey={"Stadium"}
+        // theatreKey={"Stadium"}
+        position={[0, 0, 0]}
         scale={[1.0, 1.0, 1.0]}
       >
         <Stadium scale={0.2} envMapIntensity={0.3} />
 
-        <group 
+        {/* <group 
           position={[-0.5, 0.5, 0.65]}
           rotation={[1.7, 0, 2.6]}
           scale={[0.2, 0.2, 0.2]}
         >
-          {/* <ParticlePathAnimation 
+          <ParticlePathAnimation 
             // position={[-1.39, 1.2, 0]} 
-          /> */}
-        </group>
+          />
+        </group> */}
       </group>
 
       {/* ⬇️ Only appears in Scene4 via Theatre.js scale animation */}
       <group 
         theatreKey="StadiumTwo" 
-        position={[10, 0, 10]}
+        position={[10, 0, 0]}
         scale={[1.0, 1.0, 1.0]}
       >
         <StadiumTwo scale={0.2} envMapIntensity={0.3} />
