@@ -38,7 +38,7 @@ export default function Stadium({
 
   return (
     <>
-      <OrbitControls />
+      {/* <OrbitControls /> */}
       {/* <ambientLight intensity={0.1} /> */}
 
       {/* <directionalLight

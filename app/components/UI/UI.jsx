@@ -4,25 +4,42 @@ import gsap from 'gsap';
 // import { useGSAP } from '@gsap/react';
 // import { ScrollTrigger } from "gsap/dist/ScrollTrigger";
 import './ui.scss'
+import { motion } from "framer-motion";
+import { atom, useAtom } from "jotai";
+export const sceneGroupAtom = atom("SceneGroupOne");
 
-export const UI = ({ targetSceneRef, triggerRef }) => {
-  const [, forceUpdate] = useReducer(x => x + 1, 0);
+// console.log("UI sceneGroupAtom:", sceneGroupAtom);
+
+export const UI = ({ currentSceneRef, forceUiUpdateRef }) => {
+  const [sceneGroup, setSceneGroup] = useAtom(sceneGroupAtom);
+  const currentScene = currentSceneRef.current;
+  // console.log("UI currentScene:", currentScene);
+  // console.log("UI forceUiUpdateRef:", forceUiUpdateRef);
 
   // Allow parent to trigger UI updates
+  const [, forceUpdate] = useReducer(x => x + 1, 0);
   useEffect(() => {
-    if (triggerRef) {
-      triggerRef.current = () => forceUpdate();
+    if (forceUiUpdateRef) {
+      forceUiUpdateRef.current = () => forceUpdate();
     }
-  }, [triggerRef]);
+  }, [forceUiUpdateRef]);
 
-  const current = targetSceneRef.current;
+  useEffect(() => {
+    // Map scene to screenAtom values
+    if (currentScene === "Scene1" || currentScene === "Scene2" || currentScene === "Scene3") {
+      setSceneGroup("SceneGroupOne");
+    } else if (currentScene === "Scene4") {
+      setSceneGroup("SceneGroupTwo");
+    }
+  }, [currentScene, setSceneGroup]);
+
 
   // Initial animation for the first section
   useEffect(() => {
     const tl = gsap.timeline();
 
     // ---------- Section One Animation ----------
-    if (current === "Scene1") {
+    if (currentScene === "Scene1") {
       tl.fromTo(
         ".section_one__container",
         { opacity: 0 },
@@ -68,7 +85,7 @@ export const UI = ({ targetSceneRef, triggerRef }) => {
     }
     
     // ---------- Section Two Animation ----------
-    if (current === "Scene2") {
+    if (currentScene === "Scene2") {
       tl.fromTo(
         ".section_two__container",
         {
@@ -109,22 +126,29 @@ export const UI = ({ targetSceneRef, triggerRef }) => {
     }
 
     // ---------- Section Three Animation ----------
-    gsap.fromTo(
-      ".section_three",
-      { 
-        opacity: 0, 
-        top: current === "Scene3" ? "150px" : "0px" 
-      },
-      {
-        delay: 0,
-        opacity: current === "Scene3" ? 1 : 0,
-        top: "0px",
-        ease: "power1.out",
-        duration: 0.7,
-      }
-    );
-  }, [current]);
+    if (currentScene === "Scene3") {
+      tl.fromTo(
+        ".section_three__container",
+        {
+          opacity: 0,
+          top: "150px"
+        },
+        {
+          opacity: 1,
+          top: "0px",
+          ease: "power1.out",
+          duration: 0.7,
+        }
+      )
+      // Leaving Section Two
+      .to(
+        ".section_two__container",
+        { opacity: 0 },
+        "<-=0.7"
+      )
 
+    }
+  }, [currentScene]);
 
 
   // ---------- ParticlesCursor Example ----------
@@ -157,10 +181,11 @@ export const UI = ({ targetSceneRef, triggerRef }) => {
     <div className="ui__container">
       
       {/* ---------- Section One ---------- */}
-      <div className={`
+      <motion.section className={`
         section_one__container
         ui__sections 
-        ${current === "Scene1" ? "" : "ui__hidden"}`}
+        ${currentScene === "Scene1" ? "" : "ui__hidden"}`}
+        animate={currentScene === "Scene1" ? "visible" : "hidden"}
       >
         <div className={`section_one__copy`}>
           <h1>
@@ -183,25 +208,119 @@ export const UI = ({ targetSceneRef, triggerRef }) => {
           </h1>
           <p>.</p>
         </div>
-      </div>
+      </motion.section>
 
       {/* ---------- Section Two ---------- */}
-      <div className={`
+      <motion.section className={`
         section_two__container
         ui__sections 
-        ${current === "Scene2" ? "" : "ui__hidden"}`}
+
+        `}
+        animate={currentScene === "Scene2" ? "visible" : "hidden"}
       >
-        Section 2
-      </div>
+        <motion.h2
+          variants={{
+            visible: {
+              opacity: 1,
+              y: 0,
+              transition: {
+                delay: 1.5,
+                duration: 0.7,
+              },
+            },
+            hidden: {
+              opacity: 0,
+              y: 150,
+              transition: {
+                // delay: 1.5,
+                duration: 0.7,
+              },
+            },
+          }}
+          initial={{
+            opacity: 0,
+            y: 150,
+          }}
+          className={``}
+        >
+          Section 2
+        </motion.h2>
+      </motion.section>
 
 
-      <div className={`
-        section_three
+      {/* ---------- Section Three ---------- */}
+      <motion.section className={`
+        section_three__container
         ui__sections 
-        ${current === "Scene3" ? "" : "ui__hidden"}`}
+
+        `}
+        animate={currentScene === "Scene3" ? "visible" : "hidden"}
       >
-        Section 3
-      </div>
+        <motion.h2
+          variants={{
+            visible: {
+              opacity: 1,
+              y: 0,
+              transition: {
+                delay: 1.5,
+                duration: 0.7,
+              },
+            },
+            hidden: {
+              opacity: 0,
+              y: 150,
+              transition: {
+                // delay: 1.5,
+                duration: 0.7,
+              },
+            },
+          }}
+          initial={{
+            opacity: 0,
+            y: 150,
+          }}
+          className={``}
+        >
+          Section 3
+        </motion.h2>
+      </motion.section>
+
+      {/* ---------- Section Four ---------- */}
+      <motion.section className={`
+        section_four__container
+        ui__sections 
+
+        `}
+        animate={currentScene === "Scene4" ? "visible" : "hidden"}
+      >
+        <motion.h2
+          variants={{
+            visible: {
+              opacity: 1,
+              y: 0,
+              transition: {
+                delay: 1.5,
+                duration: 0.7,
+              },
+            },
+            hidden: {
+              opacity: 0,
+              y: 150,
+              transition: {
+                // delay: 1.5,
+                duration: 0.7,
+              },
+            },
+          }}
+          initial={{
+            opacity: 0,
+            y: 150,
+          }}
+          className={``}
+        >
+          Section 4
+        </motion.h2>
+      </motion.section>
     </div>
   );
 }

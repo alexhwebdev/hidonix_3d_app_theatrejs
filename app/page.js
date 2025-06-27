@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import * as THREE from "three";
 import { Canvas, useThree, useFrame, invalidate } from "@react-three/fiber";
 import { 
@@ -14,7 +14,6 @@ import { UI } from "./components/UI/UI";
 import { Experience } from "./components/Experience";
 import CameraMovement from "./components/CameraMovement";
 import CustomGrid from "./components/CustomGrid";
-import ParticlesHoverPlane from "./components/ParticlesHoverPlane/ParticlesHoverPlane";
 import ParticlesWavePlane from "./components/ParticlesWavePlane/ParticlesWavePlane";
 import gsap from "gsap";
 import './page.scss';
@@ -25,6 +24,12 @@ import { levaStore } from 'leva';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
+import { atom, useAtom } from "jotai";
+export const sceneGroupAtom = atom("SceneGroupOne");
+export const sceneOne = atom("Scene1");
+// export const sceneTwo = atom("Scene2");
+// export const sceneThree = atom("Scene3");
+// export const sceneFour = atom("Scene4");
 
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/draco/');
@@ -32,18 +37,20 @@ dracoLoader.setDecoderPath('/draco/');
 const gltfLoader = new GLTFLoader();
 gltfLoader.setDRACOLoader(dracoLoader);
 
-const sceneOrder = ["Scene1", "Scene2", "Scene3"];
+const sceneOrder = ["Scene1", "Scene2", "Scene3", "Scene4"];
 
 const cameraPositions = {
   Scene1: { x: -7, y: 5, z: 6.5 },
   Scene2: { x: -1, y: 14.5, z: -5.05 },
   Scene3: { x: -4.579, y: 1.697, z: 2.177 },
+  Scene4: { x: -7, y: 5, z: 6.5 },
 };
 
 const cameraTargets = {
   Scene1: { x: 0, y: -1, z: 0 },
   Scene2: { x: 0, y: 0, z: -5.043 },
   Scene3: { x: -2.034, y: 0.464, z: 0.550 },
+  Scene4: { x:0, y: -1, z: 0 },
 };
 
 export default function App() {
@@ -51,10 +58,24 @@ export default function App() {
   const cameraOffsetGroupRef = useRef();
   const cameraControlTarget = useRef();
   const lookAtControlTarget = useRef();
-  const targetSceneRef = useRef("Scene1");
+  const currentSceneRef = useRef("Scene1");
   const scrollLock = useRef(false);
-  const triggerRef = useRef(null);
+  const forceUiUpdateRef = useRef(null);
   const particlesRef = useRef();
+  console.log("App currentSceneRef:", currentSceneRef);
+  // console.log("App forceUiUpdateRef:", forceUiUpdateRef);
+
+  const [sceneGroup, setSceneGroup] = useAtom(sceneGroupAtom);
+  // useEffect(() => {
+  //   console.log("App sceneOne:", sceneOne);
+  //   // Map scene to screenAtom values
+  //   if (sceneOne === "Scene1" || sceneOne === "Scene2" || sceneOne === "Scene3") {
+  //     setSceneGroup("SceneGroupOne");
+  //   } else if (sceneOne === "Scene4") {
+  //     setSceneGroup("SceneGroupTwo");
+  //   }
+  // }, [sceneOne, setSceneGroup]);
+
 
   // ---------- COMMENT OUT WHEN DONE WITH PLOTTING X, Y, Z COORDINATES
   // const { cameraPosition, cameraTarget } = useControls("Camera", {
@@ -101,7 +122,17 @@ export default function App() {
   }, []);
 
   function TriggerUiChange() {
-    triggerRef.current?.(); // 🔁 this will re-render SceneUI
+    // console.log("TriggerUiChange called");
+    // // console.log("SCROLL");
+    // // console.log("sceneOne:", sceneOne);
+    // if (sceneOne.init === "Scene1" || sceneOne.init === "Scene2" || sceneOne.init === "Scene3") {
+    //   // console.log("HIT 1");
+    //   setSceneGroup("SceneGroupOne");
+    // } else if (sceneOne.init === "Scene4") {
+    //   console.log("HIT 2");
+    //   setSceneGroup("SceneGroupTwo");
+    // }
+    forceUiUpdateRef.current?.(); // 🔁 this will re-render SceneUI
   }
 
   function CameraAnimator({ particlesRef }) {
@@ -142,7 +173,7 @@ export default function App() {
     });
 
     useFrame(() => {
-      const target = targetSceneRef.current;
+      const target = currentSceneRef.current;
       if (!target || activeScene.current === target) return;
       activeScene.current = target;
 
@@ -177,7 +208,7 @@ export default function App() {
         onComplete: () => {
           lookAtTarget.current.copy(toTarget);
           particlesRef.current?.resetMouse();
-          TriggerUiChange();
+          // TriggerUiChange();
         }
       });
 
@@ -190,8 +221,8 @@ export default function App() {
         ease: "power2.inOut",
         onUpdate: () => invalidate(),
         onComplete: () => {
-          TriggerUiChange();
           particlesRef.current?.resetMouse?.();
+          // TriggerUiChange();
         },
       });
     });
@@ -207,12 +238,12 @@ export default function App() {
     const handleWheel = (e) => {
       if (scrollLock.current) return;
       const direction = e.deltaY > 0 ? 1 : -1;
-      const currentIdx = sceneOrder.indexOf(targetSceneRef.current);
+      const currentIdx = sceneOrder.indexOf(currentSceneRef.current);
       const newIdx = Math.max(0, Math.min(sceneOrder.length - 1, currentIdx + direction));
       if (newIdx === currentIdx) return;
 
       const nextScene = sceneOrder[newIdx];
-      targetSceneRef.current = nextScene;
+      currentSceneRef.current = nextScene;
 
       scrollLock.current = true;
       window.scrollTo({
@@ -233,8 +264,8 @@ export default function App() {
     const handleScroll = () => {
       const index = Math.round(window.scrollY / window.innerHeight);
       const nextScene = sceneOrder[Math.max(0, Math.min(sceneOrder.length - 1, index))];
-      if (nextScene !== targetSceneRef.current) {
-        targetSceneRef.current = nextScene;
+      if (nextScene !== currentSceneRef.current) {
+        currentSceneRef.current = nextScene;
         TriggerUiChange();
       }
     };
@@ -243,6 +274,7 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  console.log("sceneGroup:", sceneGroup);
 
   return (
     <>
@@ -250,8 +282,8 @@ export default function App() {
       <div style={{ height: "600vh", position: "absolute", top: 0, left: 0, width: "100%", zIndex: -5 }} />
 
       <UI
-        targetSceneRef={targetSceneRef} // read-only
-        triggerRef={triggerRef}
+        currentSceneRef={currentSceneRef} // read-only
+        forceUiUpdateRef={forceUiUpdateRef}
       />
 
       <Canvas
@@ -270,7 +302,7 @@ export default function App() {
         <CameraMovement 
           cameraGroupRef={cameraOffsetGroupRef} 
           intensity={2.0} 
-          sceneNameRef={targetSceneRef}
+          sceneNameRef={currentSceneRef}
         />
 
         <group ref={cameraOffsetGroupRef}>
@@ -304,20 +336,12 @@ export default function App() {
         /> */}
 
 
-        <Experience />
-
-        <CustomGrid
-          position={[0, -1.85, 0]}
-          cellSize={3.0}
-          cellThickness={0.005}
-          dotRadius={0.02}
-          sectionColor={[1.0, 1.0, 1.0]}
-          // sectionColor={[0.0, 0.0, 0.0]}
-          // sectionColor={[0.5, 0.5, 0.5]}
-          dotColor={[0.6, 0.1, 0.1]}
-          fadeDistance={15}
-          planeSize={50}
+        <Experience 
+          currentSceneRef={currentSceneRef} 
+          forceUiUpdateRef={forceUiUpdateRef}
+          sceneGroup={sceneGroup}
         />
+
 
         {/* <Grid 
           renderOrder={-1} 
@@ -331,17 +355,6 @@ export default function App() {
           sectionColor={[1, 1, 1]} // Dark red
           fadeDistance={30} 
         /> */}
-
-        <ParticlesHoverPlane
-          // ref={particlesRef}
-          width={50}
-          height={50}
-          segments={500}
-          liftRadius={3}
-          liftStrength={1.0}
-          position={[0, -2, 0]}
-          rotation={[-Math.PI / 2, 0, 0]} // rotate to lay flat
-        />
 
         {/* <ParticlesWavePlane
           width={150}

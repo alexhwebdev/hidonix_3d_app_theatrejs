@@ -38,17 +38,17 @@ export default function StadiumTwo({
 
   return (
     <>
-      <OrbitControls />
+      {/* <OrbitControls /> */}
       <ambientLight intensity={1} />
 
       <group position={position} scale={scale}>
-        <mesh
+        {/* <mesh
           position={[0, 0, 0]}
           rotation={[-Math.PI / 2, 0, 0]}
         >
           <planeGeometry args={[50, 50]} />
           <meshBasicMaterial color="gray" />
-        </mesh>
+        </mesh> */}
 
         {meshes.map((mesh, i) => (
           <mesh
