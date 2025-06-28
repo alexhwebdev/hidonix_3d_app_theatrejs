@@ -8,7 +8,8 @@ import {
   OrbitControls, 
   PerspectiveCamera,
   SoftShadows,
-  TransformControls
+  TransformControls,
+  useProgress
 } from "@react-three/drei";
 import { UI } from "./components/UI/UI";
 import { Experience } from "./components/Experience";
@@ -25,11 +26,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 import { atom, useAtom } from "jotai";
+
+export const transitionAtom = atom(false);
 export const sceneGroupAtom = atom("SceneGroupOne");
-export const sceneOne = atom("Scene1");
-// export const sceneTwo = atom("Scene2");
-// export const sceneThree = atom("Scene3");
-// export const sceneFour = atom("Scene4");
+
+import { ScreenTransition } from "./components/ScreenTransition";
+import { ScreenTransitionHexagon } from "./components/ScreenTransitionHexagon";
 
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/draco/');
@@ -59,24 +61,23 @@ export default function App() {
   const cameraControlTarget = useRef();
   const lookAtControlTarget = useRef();
   const currentSceneRef = useRef("Scene1");
+  
   const scrollLock = useRef(false);
   const forceUiUpdateRef = useRef(null);
   const particlesRef = useRef();
   console.log("App currentSceneRef:", currentSceneRef);
   // console.log("App forceUiUpdateRef:", forceUiUpdateRef);
 
+  const [transition, setTransition] = useAtom(transitionAtom);
+  const { progress } = useProgress();
+  useEffect(() => {
+    if (progress === 100) {
+      setTransition(false);
+    }
+  }, [progress]);
+
+
   const [sceneGroup, setSceneGroup] = useAtom(sceneGroupAtom);
-  // useEffect(() => {
-  //   console.log("App sceneOne:", sceneOne);
-  //   // Map scene to screenAtom values
-  //   if (sceneOne === "Scene1" || sceneOne === "Scene2" || sceneOne === "Scene3") {
-  //     setSceneGroup("SceneGroupOne");
-  //   } else if (sceneOne === "Scene4") {
-  //     setSceneGroup("SceneGroupTwo");
-  //   }
-  // }, [sceneOne, setSceneGroup]);
-
-
   // ---------- COMMENT OUT WHEN DONE WITH PLOTTING X, Y, Z COORDINATES
   // const { cameraPosition, cameraTarget } = useControls("Camera", {
   //   // Scene1
@@ -122,16 +123,6 @@ export default function App() {
   }, []);
 
   function TriggerUiChange() {
-    // console.log("TriggerUiChange called");
-    // // console.log("SCROLL");
-    // // console.log("sceneOne:", sceneOne);
-    // if (sceneOne.init === "Scene1" || sceneOne.init === "Scene2" || sceneOne.init === "Scene3") {
-    //   // console.log("HIT 1");
-    //   setSceneGroup("SceneGroupOne");
-    // } else if (sceneOne.init === "Scene4") {
-    //   console.log("HIT 2");
-    //   setSceneGroup("SceneGroupTwo");
-    // }
     forceUiUpdateRef.current?.(); // 🔁 this will re-render SceneUI
   }
 
@@ -167,7 +158,7 @@ export default function App() {
     const activeScene = useRef(null);
     const lookAtTarget = useRef(new THREE.Vector3()); // store lookAt separately for animation
 
-    // ⛳️ Always make camera look at the animated target
+    // Always make camera look at the animated target
     useFrame(() => {
       camera.lookAt(lookAtTarget.current);
     });
@@ -229,10 +220,6 @@ export default function App() {
     return null;
   }
 
-  useLayoutEffect(() => {
-    window.scrollTo(0, 0);
-  }, []);
-
   // Scroll-based scene switching
   useEffect(() => {
     const handleWheel = (e) => {
@@ -264,7 +251,19 @@ export default function App() {
     const handleScroll = () => {
       const index = Math.round(window.scrollY / window.innerHeight);
       const nextScene = sceneOrder[Math.max(0, Math.min(sceneOrder.length - 1, index))];
-      if (nextScene !== currentSceneRef.current) {
+      const prevScene = currentSceneRef.current;
+
+      if (prevScene && nextScene !== prevScene) {
+        // Detect Scene3 → Scene4 transition
+        if (prevScene === "Scene3" && nextScene === "Scene4") {
+          setTransition(true);
+
+          // Automatically hide after the animation duration
+          setTimeout(() => {
+            setTransition(false);
+          }, 800); // Match your shader's animation timing
+        }
+
         currentSceneRef.current = nextScene;
         TriggerUiChange();
       }
@@ -274,7 +273,6 @@ export default function App() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  console.log("sceneGroup:", sceneGroup);
 
   return (
     <>
@@ -335,7 +333,8 @@ export default function App() {
           visible={true}
         /> */}
 
-
+        {/* <ScreenTransition transition={transition} color="#a5b4fc" /> */}
+        <ScreenTransitionHexagon transition={transition} color="#a5b4fc" />
         <Experience 
           currentSceneRef={currentSceneRef} 
           forceUiUpdateRef={forceUiUpdateRef}

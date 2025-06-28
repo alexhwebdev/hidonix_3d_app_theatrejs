@@ -6,6 +6,7 @@ import gsap from 'gsap';
 import './ui.scss'
 import { motion } from "framer-motion";
 import { atom, useAtom } from "jotai";
+// export const transitionAtom = atom(true);
 export const sceneGroupAtom = atom("SceneGroupOne");
 
 // console.log("UI sceneGroupAtom:", sceneGroupAtom);
