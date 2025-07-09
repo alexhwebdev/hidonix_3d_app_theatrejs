@@ -27,6 +27,7 @@ import { sceneGroupAtom } from "./UI/UI";
 export const Experience = ({sceneGroup}) => {
   // const [sceneGroup, setSceneGroup] = useAtom(sceneGroupAtom);
   // console.log("Experience sceneGroup:", sceneGroup);
+  console.log("Experience sceneGroup:", sceneGroup);
 
   const focusTargetRef = useRef(new Vector3(0, 0, 0));
   const focusTargetVisualizerRef = useRef();
@@ -124,11 +125,11 @@ export const Experience = ({sceneGroup}) => {
           floatIntensity={0.2}
           floatingRange={[1, 1]}
         > */}
-          {/* <Drone 
+          <Drone 
             position={[0.2, -1.5, 0]}
             rotation={[5, 5, 5]}
             scale={[0, 0, 0]}
-          /> */}
+          />
         {/* </Float> */}
       </group>
 

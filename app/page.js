@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useReducer, useRef } from "react";
 import * as THREE from "three";
-import { Canvas, useThree, useFrame, invalidate } from "@react-three/fiber";
+import { Canvas, extend, useThree, useFrame, invalidate } from "@react-three/fiber";
 import { 
   Grid,
   OrbitControls, 
@@ -18,20 +18,25 @@ import CustomGrid from "./components/CustomGrid";
 import ParticlesWavePlane from "./components/ParticlesWavePlane/ParticlesWavePlane";
 import gsap from "gsap";
 import './page.scss';
-
 import { useControls } from "leva";
 import { levaStore } from 'leva';
-
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
 
 import { atom, useAtom } from "jotai";
 
+import { TransitionMaterial } from "./components/ShaderMaterials/TransitionMaterial";
+import { TeleportationMaterial } from "./components/ShaderMaterials/TeleportationMaterial";
+
+extend({
+  TransitionMaterial,
+  TeleportationMaterial,
+});
+
+
 export const transitionAtom = atom(false);
 export const sceneGroupAtom = atom("SceneGroupOne");
-
-import { ScreenTransition } from "./components/ScreenTransition";
-import { ScreenTransitionHexagon } from "./components/ScreenTransitionHexagon";
+export const teleportationTriggerAtom = atom(false);
 
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/draco/');
@@ -39,20 +44,22 @@ dracoLoader.setDecoderPath('/draco/');
 const gltfLoader = new GLTFLoader();
 gltfLoader.setDRACOLoader(dracoLoader);
 
-const sceneOrder = ["Scene1", "Scene2", "Scene3", "Scene4"];
+const sceneOrder = ["Scene1", "Scene2", "Scene3", 
+  "Scene4"
+];
 
 const cameraPositions = {
   Scene1: { x: -7, y: 5, z: 6.5 },
   Scene2: { x: -1, y: 14.5, z: -5.05 },
   Scene3: { x: -4.579, y: 1.697, z: 2.177 },
-  Scene4: { x: -7, y: 5, z: 6.5 },
+  Scene4: { x: -4.579, y: 1.697, z: 2.177 },
 };
 
 const cameraTargets = {
   Scene1: { x: 0, y: -1, z: 0 },
   Scene2: { x: 0, y: 0, z: -5.043 },
   Scene3: { x: -2.034, y: 0.464, z: 0.550 },
-  Scene4: { x:0, y: -1, z: 0 },
+  Scene4: { x: -2.034, y: 0.464, z: 0.550 },
 };
 
 export default function App() {
@@ -65,11 +72,15 @@ export default function App() {
   const scrollLock = useRef(false);
   const forceUiUpdateRef = useRef(null);
   const particlesRef = useRef();
-  console.log("App currentSceneRef:", currentSceneRef);
-  // console.log("App forceUiUpdateRef:", forceUiUpdateRef);
+
+  // console.log("page forceUiUpdateRef:", forceUiUpdateRef);
 
   const [transition, setTransition] = useAtom(transitionAtom);
   const { progress } = useProgress();
+
+  const prevSceneRef = useRef("Scene1");
+  const [teleportationTrigger, setTeleportationTrigger] = useAtom(teleportationTriggerAtom);
+
   useEffect(() => {
     if (progress === 100) {
       setTransition(false);
@@ -86,7 +97,7 @@ export default function App() {
   // });
 
   const initialCameraPosition = { x: -7, y: 5, z: 6.5 };
-  // Inital page load animation
+  // INITIAL PAGE LOAD ANIMATION
   useEffect(() => {
     let raf;
 
@@ -126,33 +137,18 @@ export default function App() {
     forceUiUpdateRef.current?.(); // 🔁 this will re-render SceneUI
   }
 
+  useEffect(() => {
+    // Map scene to screenAtom values
+    if (currentSceneRef.current === "Scene1" || currentSceneRef.current === "Scene2" || currentSceneRef.current === "Scene3") {
+      setSceneGroup("SceneGroupOne");
+    } 
+
+    if (currentSceneRef.current === "Scene4") {
+      setSceneGroup("SceneGroupTwo");
+    }
+  }, [currentSceneRef.current, setSceneGroup]);
+
   function CameraAnimator({ particlesRef }) {
-    // // ---------- COMMENT OUT WHEN DONE WITH PLOTTING X, Y, Z COORDINATES
-    // const { camera } = useThree();
-    // useFrame(() => {
-    //   if (!camera || !cameraControlTarget.current || !lookAtControlTarget.current) return;
-    //   camera.position.copy(cameraControlTarget.current.position);
-    //   camera.lookAt(lookAtControlTarget.current.position);
-
-    //   // const camPos = cameraControlTarget.current.position;
-    //   const lookAtPos = lookAtControlTarget.current.position;
-
-    //   // levaStore.setValueAtPath("Camera.cameraPosition", {
-    //   //   x: camPos.x,
-    //   //   y: camPos.y,
-    //   //   z: camPos.z,
-    //   // });
-
-    //   levaStore.setValueAtPath("Camera.cameraTarget", {
-    //     x: lookAtPos.x,
-    //     y: lookAtPos.y,
-    //     z: lookAtPos.z,
-    //   });
-    // });
-    // return null;
-
-    
-    // ---------- UNCOMMENT WHEN DONE WITH PLOTTING X, Y, Z COORDINATES
     // ---------- Handle scene transitions ----------
     const { camera } = useThree();
     const activeScene = useRef(null);
@@ -254,16 +250,22 @@ export default function App() {
       const prevScene = currentSceneRef.current;
 
       if (prevScene && nextScene !== prevScene) {
-        // Detect Scene3 → Scene4 transition
         if (prevScene === "Scene3" && nextScene === "Scene4") {
-          setTransition(true);
-
-          // Automatically hide after the animation duration
-          setTimeout(() => {
-            setTransition(false);
-          }, 800); // Match your shader's animation timing
+          setTeleportationTrigger(true);
         }
 
+        // ✅ ✅ Move this here:
+        if (
+          nextScene === "Scene1" ||
+          nextScene === "Scene2" ||
+          nextScene === "Scene3"
+        ) {
+          setSceneGroup("SceneGroupOne");
+        } else if (nextScene === "Scene4") {
+          setSceneGroup("SceneGroupTwo");
+        }
+
+        prevSceneRef.current = prevScene;
         currentSceneRef.current = nextScene;
         TriggerUiChange();
       }
@@ -289,21 +291,33 @@ export default function App() {
         frameloop="always"
         shadows
         gl={{ preserveDrawingBuffer: true }}
+        // camera={{ position: [0, 0, 2], fov: 70 }}
       >
         <axesHelper args={[5]} />
-        <OrbitControls />
+        {/* <PerspectiveCamera makeDefault position={[0, 0, 10]} fov={60} /> */}
+        {/* <OrbitControls /> */}
         {/* <OrbitControls autoRotate autoRotateSpeed={0.05} enableZoom={false} makeDefault minPolarAngle={Math.PI / 2} maxPolarAngle={Math.PI / 2} /> */}
         
         {/* <fog attach="fog" args={['black', 15, 22.5]} /> */}
         {/* <SoftShadows /> */}
 
-        <CameraMovement 
+        {/* <CameraMovement 
           cameraGroupRef={cameraOffsetGroupRef} 
           intensity={2.0} 
           sceneNameRef={currentSceneRef}
+        /> */}
+
+        <CameraAnimator particlesRef={particlesRef} />
+
+        <Experience 
+          currentSceneRef={currentSceneRef} 
+          forceUiUpdateRef={forceUiUpdateRef}
+          sceneGroup={sceneGroup}
         />
 
-        <group ref={cameraOffsetGroupRef}>
+
+
+        {/* <group ref={cameraOffsetGroupRef}>
           <PerspectiveCamera 
             ref={initialCameraRef}
             makeDefault 
@@ -314,10 +328,7 @@ export default function App() {
             position={[0, 10, 20]}
             // position={[20, 10, 30]} 
           />
-        </group>
-
-        <CameraAnimator particlesRef={particlesRef} />
-
+        </group> */}
 
         {/* Draggable Camera Position & Target */}
         {/* <TransformControls object={cameraControlTarget} mode="translate" />
@@ -332,15 +343,6 @@ export default function App() {
           position={[cameraTarget.x, cameraTarget.y, cameraTarget.z]}
           visible={true}
         /> */}
-
-        {/* <ScreenTransition transition={transition} color="#a5b4fc" /> */}
-        <ScreenTransitionHexagon transition={transition} color="#a5b4fc" />
-        <Experience 
-          currentSceneRef={currentSceneRef} 
-          forceUiUpdateRef={forceUiUpdateRef}
-          sceneGroup={sceneGroup}
-        />
-
 
         {/* <Grid 
           renderOrder={-1} 

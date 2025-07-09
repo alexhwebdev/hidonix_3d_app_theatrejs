@@ -6,13 +6,13 @@ import gsap from 'gsap';
 import './ui.scss'
 import { motion } from "framer-motion";
 import { atom, useAtom } from "jotai";
-// export const transitionAtom = atom(true);
+export const transitionAtom = atom(true);
 export const sceneGroupAtom = atom("SceneGroupOne");
 
 // console.log("UI sceneGroupAtom:", sceneGroupAtom);
 
 export const UI = ({ currentSceneRef, forceUiUpdateRef }) => {
-  const [sceneGroup, setSceneGroup] = useAtom(sceneGroupAtom);
+  // const [sceneGroup, setSceneGroup] = useAtom(sceneGroupAtom);
   const currentScene = currentSceneRef.current;
   // console.log("UI currentScene:", currentScene);
   // console.log("UI forceUiUpdateRef:", forceUiUpdateRef);
@@ -25,14 +25,17 @@ export const UI = ({ currentSceneRef, forceUiUpdateRef }) => {
     }
   }, [forceUiUpdateRef]);
 
-  useEffect(() => {
-    // Map scene to screenAtom values
-    if (currentScene === "Scene1" || currentScene === "Scene2" || currentScene === "Scene3") {
-      setSceneGroup("SceneGroupOne");
-    } else if (currentScene === "Scene4") {
-      setSceneGroup("SceneGroupTwo");
-    }
-  }, [currentScene, setSceneGroup]);
+  // useEffect(() => {
+  //   // Map scene to screenAtom values
+  //   if (currentScene === "Scene1" || currentScene === "Scene2" || currentScene === "Scene3") {
+  //     setSceneGroup("SceneGroupOne");
+  //   } 
+
+  //   // ⚠️⚠️⚠️ This should not be done here. ⚠️⚠️⚠️
+  //   else if (currentScene === "Scene4") {
+  //     setSceneGroup("SceneGroupTwo");
+  //   }
+  // }, [currentScene, setSceneGroup]);
 
 
   // Initial animation for the first section
@@ -148,6 +151,26 @@ export const UI = ({ currentSceneRef, forceUiUpdateRef }) => {
         "<-=0.7"
       )
 
+    }
+
+    if (currentScene === "Scene4") {
+      tl.fromTo(
+        ".section_four__container", 
+        { 
+          opacity: 0, 
+          top: "150px" 
+        }, 
+        {
+          opacity: 1, 
+          top: "0px", 
+          duration: 0.7
+        }
+      )
+      .to(
+        ".section_three__container", 
+        { opacity: 0 }, 
+        "<-=0.7"
+      );
     }
   }, [currentScene]);
 

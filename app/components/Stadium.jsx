@@ -9,6 +9,7 @@ import * as THREE from 'three'
 
 export default function Stadium({ 
   position = [0, 0, 0],
+  rotation = [0, 0, 0],
   scale = [0.1, 0.1, 0.1]
 }) {
   // Load Draco-compressed GLB using GLTFLoader with DRACOLoader
@@ -29,20 +30,22 @@ export default function Stadium({
   }, [gltf])
   // console.log("meshes:", meshes)
 
-  useEffect(() => {
-    const box = new THREE.Box3().setFromObject(gltf.scene)
-    const size = box.getSize(new THREE.Vector3())
-    const center = box.getCenter(new THREE.Vector3())
-    // Optional: console.log(size, center)
-  }, [gltf])
+  // useEffect(() => {
+  //   const box = new THREE.Box3().setFromObject(gltf.scene)
+  //   const size = box.getSize(new THREE.Vector3())
+  //   const center = box.getCenter(new THREE.Vector3())
+  //   // Optional: console.log(size, center)
+  // }, [gltf])
+
+  const { scene: modernStadiumScene } = useGLTF("/models/vallourec_stadium_draco.glb");
 
   return (
     <>
       {/* <OrbitControls /> */}
-      {/* <ambientLight intensity={0.1} /> */}
+      <ambientLight intensity={0.05} />
 
       {/* <directionalLight
-        position={[10, 100, 0]}
+        position={[10, 30, 10]}
         intensity={1.2}
         castShadow
         shadow-mapSize-width={2048}
@@ -57,35 +60,49 @@ export default function Stadium({
       <group position={position} scale={scale}>
         {meshes.map((mesh, i) => (
           <group key={i}>
-            <mesh
+            {/* NO PILLARS */}
+            {/* <mesh
               geometry={mesh.geometry}
               position={mesh.position}
               rotation={mesh.rotation}
               scale={mesh.scale}
             >
               <meshStandardMaterial
-                color="white"
+                color="black"
+                envMapIntensity={1}
                 metalness={0.5}
                 roughness={0.9}
+                // transparent
+                // wireframe={true}
               />
-            </mesh>
+            </mesh> */}
+
+            {/* SHOWS PILLARS */}
+            <primitive 
+              object={gltf.scene} 
+              // rotation-y={Math.PI / 2} 
+              // position={[0, 0, -20]}
+              // rotation={[0.2, 0, 0]}
+              position={position}
+              rotation={rotation}
+            />
 
             {/* Outline */}
-            <lineSegments
+            {/* <lineSegments
               geometry={new THREE.EdgesGeometry(mesh.geometry)}
               position={mesh.position}
               rotation={mesh.rotation}
               scale={mesh.scale}
             >
               <lineBasicMaterial color="#4b6a7d" linewidth={1} />
-            </lineSegments>
+            </lineSegments> */}
           </group>
         ))}
       </group>
     </>
   )
 }
-
+useGLTF.preload('/models/vallourec_stadium_draco.glb')
 
 
 // import React, { useEffect, useMemo } from 'react'
@@ -150,4 +167,4 @@ export default function Stadium({
 //     </>
 //   )
 // }
-useGLTF.preload('/models/vallourec_stadium_draco.glb')
+// useGLTF.preload('/models/vallourec_stadium_draco.glb')
